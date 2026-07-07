@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>¿Qué hago hoy? — Descuentos Córdoba</title>
+<style>
+  :root{
+    --bg:#0f1226; --card:#191d38; --card2:#20264a; --line:#2c3360;
+    --txt:#eef1ff; --dim:#9aa2cf; --accent:#5b8cff; --good:#39d98a; --warn:#ffd166;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:linear-gradient(180deg,#10132a,#0b0e20);color:var(--txt);min-height:100vh}
+  header{padding:22px 18px 10px;max-width:760px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 2px}
+  .sub{color:var(--dim);font-size:13px}
+  main{max-width:760px;margin:0 auto;padding:8px 16px 60px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+         padding:16px;margin:14px 0}
+  .panel h2{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);
+            margin:0 0 12px;font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);background:var(--card2);color:var(--txt);
+        padding:9px 13px;border-radius:999px;font-size:14px;cursor:pointer;user-select:none;
+        transition:.15s;display:flex;align-items:center;gap:7px}
+  .chip:hover{border-color:var(--accent)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+  .chip.on .dot{background:#fff}
+  .cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+  .cat{background:var(--card2);border:1px solid var(--line);border-radius:14px;
+       padding:14px 8px;text-align:center;cursor:pointer;transition:.15s}
+  .cat:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .cat.on{border-color:var(--accent);background:#243056}
+  .cat .emo{font-size:26px;display:block;margin-bottom:5px}
+  .cat .lbl{font-size:12.5px;color:var(--txt)}
+  .toolbar{display:flex;align-items:center;gap:12px;margin:6px 2px 0;flex-wrap:wrap}
+  .switch{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:13px;cursor:pointer}
+  .switch input{accent-color:var(--accent);width:16px;height:16px}
+  .count{margin-left:auto;color:var(--dim);font-size:13px}
+  .result{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin:11px 0}
+  .result .top{display:flex;gap:13px;align-items:flex-start}
+  .result .pct{font-size:23px;font-weight:800;color:var(--good);min-width:82px;line-height:1.05}
+  .result .pct small{display:block;font-size:11px;color:var(--dim);font-weight:600;margin-top:2px}
+  .result .body{flex:1}
+  .result .name{font-size:16px;font-weight:700;margin:0 0 3px}
+  .result .meta{font-size:13px;color:var(--dim);line-height:1.5}
+  .result .meta b{color:var(--txt);font-weight:600}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .badge{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--card2);
+         border:1px solid var(--line);color:var(--dim)}
+  .badge.hoy{background:var(--good);color:#08130d;border-color:var(--good);font-weight:700}
+  .badge.pay{color:var(--txt)}
+  .venues{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:9px}
+  .venue{display:flex;align-items:flex-start;gap:9px}
+  .venue .pin{font-size:15px;line-height:1.4}
+  .venue .vbody{flex:1}
+  .venue .vname{font-size:14px;font-weight:600}
+  .venue .vaddr{font-size:12.5px;color:var(--dim)}
+  .venue .go{font-size:12px;color:var(--accent);text-decoration:none;white-space:nowrap;
+             border:1px solid var(--line);border-radius:8px;padding:5px 9px;align-self:center}
+  .venue .go:hover{border-color:var(--accent)}
+  .vhint{font-size:12px;color:var(--dim);font-style:italic}
+  .empty{text-align:center;color:var(--dim);padding:34px 10px;font-size:14px}
+  .disclaimer{font-size:11.5px;color:#7b83b3;margin-top:20px;line-height:1.6;text-align:center}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>¿Qué hago hoy? 💳</h1>
+  <div class="sub">Con lo que ya tenés, a dónde ir y cuánto ahorrás en Córdoba Capital.</div>
+</header>
+<main>
+  <div class="panel">
+    <h2>1 · Mis medios de pago</h2>
+    <div class="chips" id="pays"></div>
+  </div>
+
+  <div class="panel">
+    <h2>2 · ¿Qué querés hacer?</h2>
+    <div class="cats" id="cats"></div>
+  </div>
+
+  <div class="toolbar">
+    <label class="switch"><input type="checkbox" id="onlyToday"> Solo lo de hoy</label>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="results"></div>
+
+  <div class="disclaimer">
+    Promos y locales relevados el 07/07/2026 de fuentes públicas y sitios oficiales (Banco Macro, Mercado Pago, Personal Pay, Shell, sitios de cada local).
+    Los beneficios y los comercios adheridos cambian seguido y tienen topes y condiciones — <b>confirmá en la app antes de pagar</b>.
+    Prototipo demostrativo, no es asesoramiento financiero.
+  </div>
+</main>
+
+<script>
+const PAYS = [
+  {id:'macro_selecta', label:'Tarjeta Macro Selecta'},
+  {id:'modo',          label:'MODO'},
+  {id:'personal_pay',  label:'Personal Pay'},
+  {id:'puma_pris',     label:'App Puma Pris'},
+  {id:'mercado_pago',  label:'Mercado Pago'},
+  {id:'shell_box',     label:'App Shell Box'},
+];
+
+const CATS = [
+  {id:'cena',       emo:'🍽️', lbl:'Salir a cenar'},
+  {id:'cine',       emo:'🎬', lbl:'Ir al cine'},
+  {id:'super',      emo:'🛒', lbl:'Supermercado'},
+  {id:'nafta',      emo:'⛽', lbl:'Cargar nafta'},
+  {id:'vestimenta', emo:'👕', lbl:'Vestimenta'},
+  {id:'hotel',      emo:'🏨', lbl:'Hotel / escapada'},
+  {id:'peluqueria', emo:'💇', lbl:'Peluquería'},
+  {id:'transporte', emo:'🚌', lbl:'Transporte'},
+];
+
+// dia: 'lun','mar','mie','jue','vie','sab','dom' o 'todos'
+// lugares: [{n:nombre, dir:dirección, zona:barrio}]  · hint: texto si no hay locales puntuales
+const PROMOS = [
+  {cat:'cena', name:'Circuito Gastronómico Selecta', req:['macro_selecta'], dia:'todos', pct:'30%', tope:'$30.000 / mes', vig:'verificar en app', nota:'Restaurantes de autor adheridos. Con tarjeta Macro Selecta.', lugares:[
+    {n:'San Honorato', dir:'25 de Mayo 1208', zona:'Bº General Paz'},
+    {n:'El Patio de los Naranjos', dir:'Cnel. Juan P. Pringles 76', zona:'Bº General Paz'},
+    {n:'Parrilla La Emilia', dir:'Av. Pablo Ricchieri 2301', zona:'Ecodistrito de las Artes'},
+  ]},
+  {cat:'cena', name:'McDonald’s', reqAny:['mercado_pago','personal_pay'], dia:'sab', diaExtra:['dom'], pct:'15%', tope:'sin tope · mínimo $35.000', vig:'julio 2026', nota:'Sábados y domingos, pagando con QR de Mercado Pago (sirve la billetera de Mercado Pago o de Personal Pay). Confirmá el mínimo en la app.', lugares:[
+    {n:'McDonald’s Patio Olmos', dir:'Av. Vélez Sársfield 361, 2º piso', zona:'Nueva Córdoba'},
+    {n:'McDonald’s Nuevocentro', dir:'Av. Duarte Quirós 1400 (Nuevocentro Shopping)', zona:'Bº Alberdi'},
+    {n:'McDonald’s Plaza España', dir:'Bv. Chacabuco esq. Av. Ambrosio Olmos', zona:'Nueva Córdoba'},
+  ], notaVenue:'McDon’s tiene 19 locales en la ciudad — estos son algunos. Buscá el más cercano en el mapa.'},
+  {cat:'cena', name:'Sábados Selecta — desayunos y almuerzos', req:['macro_selecta','modo'], dia:'sab', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Cafés y bares adheridos, de 7 a 15 h. Pagando con MODO.', hint:'Locales adheridos: se confirman en MODO / app Macro (cambian por temporada).'},
+
+  {cat:'cine', name:'Sábados Selecta — Cine', req:['macro_selecta','modo'], dia:'sab', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Cines adheridos. Pagando con MODO (tarjeta Signature / Black / Amex Icon).', lugares:[
+    {n:'Hoyts Nuevocentro', dir:'Duarte Quirós 1400 (Nuevocentro Shopping)', zona:'Bº Alberdi'},
+    {n:'Hoyts Patio Olmos', dir:'Av. Vélez Sársfield 361 (Patio Olmos)', zona:'Centro'},
+    {n:'Showcase Córdoba', dir:'José A. de Goyechea 2851', zona:'Altos de San Martín'},
+  ], notaVenue:'Confirmá la adhesión de cada cadena en la app antes de comprar la entrada.'},
+
+  {cat:'super', name:'Hiper Libertad', req:['mercado_pago'], dia:'todos', pct:'hasta 25%', tope:'ver app', vig:'julio 2026', nota:'QR con dinero en cuenta de Mercado Pago.', lugares:[
+    {n:'Hiper Libertad Jacinto Ríos', dir:'Libertad 1100', zona:'Bº General Paz'},
+    {n:'Hiper Libertad Ruta 9', dir:'Av. Menéndez Pidal y Emilio Lamarca', zona:'Zona sur'},
+  ]},
+  {cat:'super', name:'Carrefour', req:['mercado_pago'], dia:'todos', pct:'15%', tope:'ver app', vig:'julio 2026', nota:'QR con dinero en cuenta de Mercado Pago.', hint:'4 sucursales en Córdoba Capital — buscá la más cercana en el mapa.'},
+  {cat:'super', name:'Día', req:['mercado_pago'], dia:'todos', pct:'10%', tope:'sin tope', vig:'julio 2026', nota:'QR con dinero en cuenta. Tienda física y online.', hint:'Aplica en las sucursales Día de la ciudad.'},
+  {cat:'super', name:'Supermercados adheridos', req:['macro_selecta','modo'], dia:'mie', pct:'20–30%', tope:'ver app', vig:'vigente', nota:'Miércoles con MODO / app Macro. Excluye carnes, tecnología y electro.', hint:'Comercios adheridos: se confirman en la app Macro / MODO.'},
+
+  {cat:'nafta', name:'YPF', req:['macro_selecta','modo'], dia:'mie', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Miércoles, pago presencial con MODO. Reintegro inmediato en tu cuenta Macro.', hint:'Aplica en todas las estaciones YPF de la ciudad.'},
+  {cat:'nafta', name:'Shell (V-Power)', req:['shell_box'], dia:'jue', pct:'10%', tope:'$4.500 / semana', vig:'julio 2026', nota:'Jueves, con la app Shell Box (socio Club Easy). No necesitás banco.', hint:'Aplica en estaciones Shell adheridas con Shell Box.'},
+  {cat:'nafta', name:'Puma Energy', req:['personal_pay','puma_pris'], dia:'sab', pct:'10%', tope:'$4.000 / carga · máx 2 por mes', vig:'jul–ago 2026', nota:'Sábados, con Visa Personal Pay desde la app Puma Pris.', hint:'Aplica en estaciones Puma adheridas.'},
+
+  {cat:'vestimenta', name:'Duty Free — Aeropuerto de Córdoba', req:['macro_selecta','modo'], dia:'todos', pct:'30%', tope:'ver app', vig:'vigente', nota:'Con Visa Signature Selecta vía MODO NFC.', lugares:[
+    {n:'Duty Free Shop — Aeropuerto Córdoba', dir:'Aeropuerto Ing. Taravella, Camino a Pajas Blancas', zona:'Bº Quebrada de las Rosas'},
+  ]},
+
+  {cat:'hotel', name:'Hoteles boutique Selecta', req:['macro_selecta'], dia:'todos', pct:'10%', tope:'sin tope + hasta 12 cuotas', vig:'verificar', nota:'Con tarjeta de crédito Macro Selecta.', lugares:[
+    {n:'La Olivia Hotel Boutique', dir:'Córdoba (consultar dirección al reservar)', zona:'Córdoba'},
+    {n:'Posada del Qenti', dir:'Ruta E-96, Icho Cruz', zona:'Punilla'},
+  ]},
+
+  {cat:'peluqueria', name:'Sábados Selecta — Peluquerías', req:['macro_selecta','modo'], dia:'sab', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Peluquerías adheridas, pagando con MODO.', hint:'Locales adheridos: se confirman en MODO / app Macro.'},
+
+  {cat:'transporte', name:'Colectivo urbano', req:['mercado_pago'], dia:'todos', pct:'50%', tope:'$15.000', vig:'desde 07/07/2026', nota:'Con la tarjeta prepaga de Mercado Pago.', hint:'Aplica en las líneas urbanas de la ciudad.'},
+];
+
+const DIAS = {0:'dom',1:'lun',2:'mar',3:'mie',4:'jue',5:'vie',6:'sab'};
+const DIA_NOMBRE = {lun:'Lunes',mar:'Martes',mie:'Miércoles',jue:'Jueves',vie:'Viernes',sab:'Sábado',dom:'Domingo',todos:'Todos los días'};
+const HOY = DIAS[new Date().getDay()];
+
+let selPays = new Set(JSON.parse(localStorage.getItem('pays')||'[]'));
+let selCat = localStorage.getItem('cat') || null;
+
+const $pays = document.getElementById('pays');
+const $cats = document.getElementById('cats');
+const $results = document.getElementById('results');
+const $count = document.getElementById('count');
+const $onlyToday = document.getElementById('onlyToday');
+
+function renderPays(){
+  $pays.innerHTML='';
+  PAYS.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='chip'+(selPays.has(p.id)?' on':'');
+    el.innerHTML=`<span class="dot"></span>${p.label}`;
+    el.onclick=()=>{ selPays.has(p.id)?selPays.delete(p.id):selPays.add(p.id);
+      localStorage.setItem('pays',JSON.stringify([...selPays])); renderPays(); render(); };
+    $pays.appendChild(el);
+  });
+}
+function renderCats(){
+  $cats.innerHTML='';
+  CATS.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='cat'+(selCat===c.id?' on':'');
+    el.innerHTML=`<span class="emo">${c.emo}</span><span class="lbl">${c.lbl}</span>`;
+    el.onclick=()=>{ selCat=(selCat===c.id?null:c.id); localStorage.setItem('cat',selCat||''); renderCats(); render(); };
+    $cats.appendChild(el);
+  });
+}
+function payLabel(id){ return (PAYS.find(p=>p.id===id)||{}).label||id; }
+function has(p){
+  const allReq = (p.req||[]).every(r=>selPays.has(r));
+  const anyReq = !p.reqAny || p.reqAny.some(r=>selPays.has(r));
+  return allReq && anyReq;
+}
+function reqIds(p){ return [...(p.req||[]), ...(p.reqAny||[])]; }
+function dias(p){ return [p.dia, ...(p.diaExtra||[])]; }
+function esHoy(p){ return dias(p).includes('todos') || dias(p).includes(HOY); }
+function diasNombre(p){ return dias(p).map(d=>DIA_NOMBRE[d]).join(' y '); }
+function badgesHTML(p){
+  let out='';
+  (p.req||[]).forEach(r=>out+=`<span class="badge pay">${payLabel(r)}</span>`);
+  if(p.reqAny) out+=`<span class="badge pay">${p.reqAny.map(payLabel).join(' o ')}</span>`;
+  return out;
+}
+function maps(v){ return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(v.n+', '+v.dir+', Córdoba, Argentina'); }
+
+function venuesHTML(p){
+  let out='';
+  if(p.lugares && p.lugares.length){
+    out += '<div class="venues">' + p.lugares.map(v=>`
+      <div class="venue">
+        <span class="pin">📍</span>
+        <div class="vbody"><div class="vname">${v.n}</div><div class="vaddr">${v.dir} · ${v.zona}</div></div>
+        <a class="go" href="${maps(v)}" target="_blank" rel="noopener">Cómo llegar</a>
+      </div>`).join('');
+    if(p.notaVenue) out += `<div class="vhint">${p.notaVenue}</div>`;
+    out += '</div>';
+  } else if(p.hint){
+    out += `<div class="venues"><div class="vhint">${p.hint}</div></div>`;
+  }
+  return out;
+}
+
+function render(){
+  if(!selCat){ $results.innerHTML='<div class="empty">Elegí qué querés hacer arriba 👆</div>'; $count.textContent=''; return; }
+  let list = PROMOS.filter(p=>p.cat===selCat);
+  const usable = list.filter(has);
+  const missing = list.filter(p=>!has(p));
+  let show = usable;
+  if($onlyToday.checked) show = show.filter(esHoy);
+
+  $count.textContent = `${show.length} disponible${show.length===1?'':'s'} con tus medios de pago`;
+
+  if(show.length===0 && usable.length===0){
+    $results.innerHTML = `<div class="empty">No hay promos en este rubro para tus medios de pago.<br>
+      ${missing.length?`Si tuvieras <b>${[...new Set(missing.flatMap(reqIds))].map(payLabel).join(' o ')}</b> se te abrirían ${missing.length} opción(es).`:''}</div>`;
+    return;
+  }
+  if(show.length===0){ $results.innerHTML='<div class="empty">Con tus medios hay opciones, pero ninguna es de hoy. Destildá "Solo lo de hoy".</div>'; return; }
+
+  show.sort((a,b)=>parseInt(b.pct)-parseInt(a.pct));
+  $results.innerHTML = show.map(p=>{
+    return `<div class="result">
+      <div class="top">
+        <div class="pct">${p.pct}<small>OFF</small></div>
+        <div class="body">
+          <p class="name">${p.name}</p>
+          <div class="meta"><b>${diasNombre(p)}</b> · Tope: ${p.tope} · ${p.vig}<br>${p.nota}</div>
+          <div class="badges">
+            ${esHoy(p)?'<span class="badge hoy">HOY</span>':''}
+            ${badgesHTML(p)}
+          </div>
+        </div>
+      </div>
+      ${venuesHTML(p)}
+    </div>`;
+  }).join('');
+}
+
+$onlyToday.onchange=render;
+renderPays(); renderCats(); render();
+</script>
+</body>
+</html>
