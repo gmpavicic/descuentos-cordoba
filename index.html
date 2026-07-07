@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0f1226; --card:#191d38; --card2:#20264a; --line:#2c3360;
-    --txt:#eef1ff; --dim:#9aa2cf; --accent:#5b8cff; --good:#39d98a; --warn:#ffd166;
+    --txt:#eef1ff; --dim:#9aa2cf; --accent:#5b8cff; --good:#39d98a; --warn:#ffd166; --fam:#b79bff;
     --radius:16px;
   }
   *{box-sizing:border-box}
@@ -17,16 +17,25 @@
   h1{font-size:22px;margin:0 0 2px}
   .sub{color:var(--dim);font-size:13px}
   main{max-width:760px;margin:0 auto;padding:8px 16px 60px}
+  .segwrap{display:flex;justify-content:center;margin:8px 0 2px}
+  .segment{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px}
+  .segment button{border:0;background:transparent;color:var(--dim);padding:8px 18px;border-radius:999px;
+                  font-size:14px;cursor:pointer;font-family:inherit;transition:.15s}
+  .segment button.on{background:var(--accent);color:#fff;font-weight:600}
   .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
          padding:16px;margin:14px 0}
+  .panel.fam{border-color:#3a3363;background:#1c1836}
   .panel h2{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);
-            margin:0 0 12px;font-weight:700}
+            margin:0 0 4px;font-weight:700}
+  .panel h2 .tag{font-size:10px;background:#4a3b73;color:#e7ddff;border-radius:999px;padding:2px 8px;margin-left:6px;letter-spacing:0;text-transform:none}
+  .phint{font-size:12px;color:var(--dim);margin:0 0 11px}
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{border:1px solid var(--line);background:var(--card2);color:var(--txt);
         padding:9px 13px;border-radius:999px;font-size:14px;cursor:pointer;user-select:none;
         transition:.15s;display:flex;align-items:center;gap:7px}
   .chip:hover{border-color:var(--accent)}
   .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .panel.fam .chip.on{background:#6b53a3;border-color:#6b53a3}
   .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
   .chip.on .dot{background:#fff}
   .cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
@@ -41,6 +50,7 @@
   .switch input{accent-color:var(--accent);width:16px;height:16px}
   .count{margin-left:auto;color:var(--dim);font-size:13px}
   .result{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin:11px 0}
+  .result.famr{border-color:#4a3b73}
   .result .top{display:flex;gap:13px;align-items:flex-start}
   .result .pct{font-size:23px;font-weight:800;color:var(--good);min-width:82px;line-height:1.05}
   .result .pct small{display:block;font-size:11px;color:var(--dim);font-weight:600;margin-top:2px}
@@ -53,6 +63,7 @@
          border:1px solid var(--line);color:var(--dim)}
   .badge.hoy{background:var(--good);color:#08130d;border-color:var(--good);font-weight:700}
   .badge.pay{color:var(--txt)}
+  .badge.fam{background:#4a3b73;border-color:#6b53a3;color:#e7ddff;font-weight:600}
   .venues{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:9px}
   .venue{display:flex;align-items:flex-start;gap:9px}
   .venue .pin{font-size:15px;line-height:1.4}
@@ -74,13 +85,26 @@
   <div class="sub">Con lo que ya tenés, a dónde ir y cuánto ahorrás en Córdoba Capital.</div>
 </header>
 <main>
+  <div class="segwrap">
+    <div class="segment" id="perfil">
+      <button data-p="individual">👤 Individual</button>
+      <button data-p="familiar">👨‍👩‍👧 Familiar</button>
+    </div>
+  </div>
+
   <div class="panel">
     <h2>1 · Mis medios de pago</h2>
     <div class="chips" id="pays"></div>
   </div>
 
+  <div class="panel fam" id="famPanel">
+    <h2>2 · Medios de mi familia <span class="tag">se suman en modo Familiar</span></h2>
+    <p class="phint">Cargá acá lo de tu pareja/familia (ej. Banco Galicia). En modo Familiar se combinan con los tuyos.</p>
+    <div class="chips" id="paysFam"></div>
+  </div>
+
   <div class="panel">
-    <h2>2 · ¿Qué querés hacer?</h2>
+    <h2>3 · ¿Qué querés hacer?</h2>
     <div class="cats" id="cats"></div>
   </div>
 
@@ -91,7 +115,7 @@
   <div id="results"></div>
 
   <div class="disclaimer">
-    Promos y locales relevados el 07/07/2026 de fuentes públicas y sitios oficiales (Banco Macro, Mercado Pago, Personal Pay, Shell, sitios de cada local).
+    Promos y locales relevados el 07/07/2026 de fuentes públicas y sitios oficiales (Banco Macro, Banco Galicia, Mercado Pago, Personal Pay, Shell, sitios de cada local).
     Los beneficios y los comercios adheridos cambian seguido y tienen topes y condiciones — <b>confirmá en la app antes de pagar</b>.
     Prototipo demostrativo, no es asesoramiento financiero.
   </div>
@@ -100,6 +124,7 @@
 <script>
 const PAYS = [
   {id:'macro_selecta', label:'Tarjeta Macro Selecta'},
+  {id:'galicia',       label:'Banco Galicia'},
   {id:'modo',          label:'MODO'},
   {id:'personal_pay',  label:'Personal Pay'},
   {id:'puma_pris',     label:'App Puma Pris'},
@@ -119,49 +144,61 @@ const CATS = [
 ];
 
 // dia: 'lun','mar','mie','jue','vie','sab','dom' o 'todos'
-// lugares: [{n:nombre, dir:dirección, zona:barrio}]  · hint: texto si no hay locales puntuales
+// req: [todos requeridos] · reqAny: [alcanza con uno] · diaExtra: [días extra]
+// lugares: [{n,dir,zona}] · hint: texto si no hay locales puntuales
 const PROMOS = [
+  // ---------- CENA ----------
   {cat:'cena', name:'Circuito Gastronómico Selecta', req:['macro_selecta'], dia:'todos', pct:'30%', tope:'$30.000 / mes', vig:'verificar en app', nota:'Restaurantes de autor adheridos. Con tarjeta Macro Selecta.', lugares:[
     {n:'San Honorato', dir:'25 de Mayo 1208', zona:'Bº General Paz'},
     {n:'El Patio de los Naranjos', dir:'Cnel. Juan P. Pringles 76', zona:'Bº General Paz'},
     {n:'Parrilla La Emilia', dir:'Av. Pablo Ricchieri 2301', zona:'Ecodistrito de las Artes'},
   ]},
+  {cat:'cena', name:'Gastronomía Galicia', req:['galicia'], dia:'todos', pct:'20%', tope:'ver app', vig:'julio 2026', nota:'Todos los días pagando con MODO desde la app Galicia. Con Galicia Éminent: 25%.', hint:'Restaurantes y heladerías adheridos: se confirman en la app Galicia / MODO.'},
   {cat:'cena', name:'McDonald’s', reqAny:['mercado_pago','personal_pay'], dia:'sab', diaExtra:['dom'], pct:'15%', tope:'sin tope · mínimo $35.000', vig:'julio 2026', nota:'Sábados y domingos, pagando con QR de Mercado Pago (sirve la billetera de Mercado Pago o de Personal Pay). Confirmá el mínimo en la app.', lugares:[
     {n:'McDonald’s Patio Olmos', dir:'Av. Vélez Sársfield 361, 2º piso', zona:'Nueva Córdoba'},
     {n:'McDonald’s Nuevocentro', dir:'Av. Duarte Quirós 1400 (Nuevocentro Shopping)', zona:'Bº Alberdi'},
     {n:'McDonald’s Plaza España', dir:'Bv. Chacabuco esq. Av. Ambrosio Olmos', zona:'Nueva Córdoba'},
-  ], notaVenue:'McDon’s tiene 19 locales en la ciudad — estos son algunos. Buscá el más cercano en el mapa.'},
+  ], notaVenue:'McDonald’s tiene varios locales en la ciudad — estos son algunos. Buscá el más cercano en el mapa.'},
   {cat:'cena', name:'Sábados Selecta — desayunos y almuerzos', req:['macro_selecta','modo'], dia:'sab', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Cafés y bares adheridos, de 7 a 15 h. Pagando con MODO.', hint:'Locales adheridos: se confirman en MODO / app Macro (cambian por temporada).'},
 
+  // ---------- CINE ----------
   {cat:'cine', name:'Sábados Selecta — Cine', req:['macro_selecta','modo'], dia:'sab', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Cines adheridos. Pagando con MODO (tarjeta Signature / Black / Amex Icon).', lugares:[
     {n:'Hoyts Nuevocentro', dir:'Duarte Quirós 1400 (Nuevocentro Shopping)', zona:'Bº Alberdi'},
     {n:'Hoyts Patio Olmos', dir:'Av. Vélez Sársfield 361 (Patio Olmos)', zona:'Centro'},
     {n:'Showcase Córdoba', dir:'José A. de Goyechea 2851', zona:'Altos de San Martín'},
   ], notaVenue:'Confirmá la adhesión de cada cadena en la app antes de comprar la entrada.'},
 
+  // ---------- SUPERMERCADO ----------
   {cat:'super', name:'Hiper Libertad', req:['mercado_pago'], dia:'todos', pct:'hasta 25%', tope:'ver app', vig:'julio 2026', nota:'QR con dinero en cuenta de Mercado Pago.', lugares:[
     {n:'Hiper Libertad Jacinto Ríos', dir:'Libertad 1100', zona:'Bº General Paz'},
     {n:'Hiper Libertad Ruta 9', dir:'Av. Menéndez Pidal y Emilio Lamarca', zona:'Zona sur'},
   ]},
+  {cat:'super', name:'Jumbo y ChangoMás — Galicia', req:['galicia'], dia:'todos', pct:'20%', tope:'$25.000 / mes', vig:'julio 2026', nota:'20% de ahorro pagando con QR / MODO de la app Galicia.', hint:'Jumbo (Cerro de las Rosas) y ChangoMás en Córdoba — buscá la sucursal en el mapa.'},
   {cat:'super', name:'Carrefour', req:['mercado_pago'], dia:'todos', pct:'15%', tope:'ver app', vig:'julio 2026', nota:'QR con dinero en cuenta de Mercado Pago.', hint:'4 sucursales en Córdoba Capital — buscá la más cercana en el mapa.'},
   {cat:'super', name:'Día', req:['mercado_pago'], dia:'todos', pct:'10%', tope:'sin tope', vig:'julio 2026', nota:'QR con dinero en cuenta. Tienda física y online.', hint:'Aplica en las sucursales Día de la ciudad.'},
   {cat:'super', name:'Supermercados adheridos', req:['macro_selecta','modo'], dia:'mie', pct:'20–30%', tope:'ver app', vig:'vigente', nota:'Miércoles con MODO / app Macro. Excluye carnes, tecnología y electro.', hint:'Comercios adheridos: se confirman en la app Macro / MODO.'},
 
+  // ---------- NAFTA ----------
   {cat:'nafta', name:'YPF', req:['macro_selecta','modo'], dia:'mie', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Miércoles, pago presencial con MODO. Reintegro inmediato en tu cuenta Macro.', hint:'Aplica en todas las estaciones YPF de la ciudad.'},
+  {cat:'nafta', name:'YPF · Shell · Puma · Axion — Galicia', req:['galicia'], dia:'lun', pct:'10%', tope:'$15.000 / mes', vig:'julio 2026', nota:'Lunes con MODO (Mastercard) desde la app Galicia. Éminent: 15%. Además, el día 10 de cada mes: 25%.', hint:'Aplica en YPF, Shell, Puma y Axion adheridas.'},
   {cat:'nafta', name:'Shell (V-Power)', req:['shell_box'], dia:'jue', pct:'10%', tope:'$4.500 / semana', vig:'julio 2026', nota:'Jueves, con la app Shell Box (socio Club Easy). No necesitás banco.', hint:'Aplica en estaciones Shell adheridas con Shell Box.'},
   {cat:'nafta', name:'Puma Energy', req:['personal_pay','puma_pris'], dia:'sab', pct:'10%', tope:'$4.000 / carga · máx 2 por mes', vig:'jul–ago 2026', nota:'Sábados, con Visa Personal Pay desde la app Puma Pris.', hint:'Aplica en estaciones Puma adheridas.'},
 
+  // ---------- VESTIMENTA ----------
   {cat:'vestimenta', name:'Duty Free — Aeropuerto de Córdoba', req:['macro_selecta','modo'], dia:'todos', pct:'30%', tope:'ver app', vig:'vigente', nota:'Con Visa Signature Selecta vía MODO NFC.', lugares:[
     {n:'Duty Free Shop — Aeropuerto Córdoba', dir:'Aeropuerto Ing. Taravella, Camino a Pajas Blancas', zona:'Bº Quebrada de las Rosas'},
   ]},
 
+  // ---------- HOTEL ----------
   {cat:'hotel', name:'Hoteles boutique Selecta', req:['macro_selecta'], dia:'todos', pct:'10%', tope:'sin tope + hasta 12 cuotas', vig:'verificar', nota:'Con tarjeta de crédito Macro Selecta.', lugares:[
     {n:'La Olivia Hotel Boutique', dir:'Córdoba (consultar dirección al reservar)', zona:'Córdoba'},
     {n:'Posada del Qenti', dir:'Ruta E-96, Icho Cruz', zona:'Punilla'},
   ]},
 
+  // ---------- PELUQUERÍA ----------
   {cat:'peluqueria', name:'Sábados Selecta — Peluquerías', req:['macro_selecta','modo'], dia:'sab', pct:'30%', tope:'$20.000 / mes', vig:'hasta 30/09/2026', nota:'Peluquerías adheridas, pagando con MODO.', hint:'Locales adheridos: se confirman en MODO / app Macro.'},
 
+  // ---------- TRANSPORTE ----------
   {cat:'transporte', name:'Colectivo urbano', req:['mercado_pago'], dia:'todos', pct:'50%', tope:'$15.000', vig:'desde 07/07/2026', nota:'Con la tarjeta prepaga de Mercado Pago.', hint:'Aplica en las líneas urbanas de la ciudad.'},
 ];
 
@@ -169,24 +206,27 @@ const DIAS = {0:'dom',1:'lun',2:'mar',3:'mie',4:'jue',5:'vie',6:'sab'};
 const DIA_NOMBRE = {lun:'Lunes',mar:'Martes',mie:'Miércoles',jue:'Jueves',vie:'Viernes',sab:'Sábado',dom:'Domingo',todos:'Todos los días'};
 const HOY = DIAS[new Date().getDay()];
 
-let selPays = new Set(JSON.parse(localStorage.getItem('pays')||'[]'));
-let selCat = localStorage.getItem('cat') || null;
+let miMedios  = new Set(JSON.parse(localStorage.getItem('miMedios') || localStorage.getItem('pays') || '[]'));
+let famMedios = new Set(JSON.parse(localStorage.getItem('famMedios') || '[]'));
+let perfil    = localStorage.getItem('perfil') || 'individual';
+let selCat    = localStorage.getItem('cat') || null;
 
 const $pays = document.getElementById('pays');
+const $paysFam = document.getElementById('paysFam');
 const $cats = document.getElementById('cats');
 const $results = document.getElementById('results');
 const $count = document.getElementById('count');
 const $onlyToday = document.getElementById('onlyToday');
 
-function renderPays(){
-  $pays.innerHTML='';
+function renderChips(el, set, key){
+  el.innerHTML='';
   PAYS.forEach(p=>{
-    const el=document.createElement('div');
-    el.className='chip'+(selPays.has(p.id)?' on':'');
-    el.innerHTML=`<span class="dot"></span>${p.label}`;
-    el.onclick=()=>{ selPays.has(p.id)?selPays.delete(p.id):selPays.add(p.id);
-      localStorage.setItem('pays',JSON.stringify([...selPays])); renderPays(); render(); };
-    $pays.appendChild(el);
+    const c=document.createElement('div');
+    c.className='chip'+(set.has(p.id)?' on':'');
+    c.innerHTML=`<span class="dot"></span>${p.label}`;
+    c.onclick=()=>{ set.has(p.id)?set.delete(p.id):set.add(p.id);
+      localStorage.setItem(key,JSON.stringify([...set])); renderChips(el,set,key); render(); };
+    el.appendChild(c);
   });
 }
 function renderCats(){
@@ -199,12 +239,23 @@ function renderCats(){
     $cats.appendChild(el);
   });
 }
+function renderPerfil(){
+  document.querySelectorAll('#perfil button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.p===perfil);
+    b.onclick=()=>{ perfil=b.dataset.p; localStorage.setItem('perfil',perfil); renderPerfil(); render(); };
+  });
+  document.getElementById('famPanel').style.opacity = (perfil==='familiar'?'1':'0.6');
+}
+
 function payLabel(id){ return (PAYS.find(p=>p.id===id)||{}).label||id; }
-function has(p){
-  const allReq = (p.req||[]).every(r=>selPays.has(r));
-  const anyReq = !p.reqAny || p.reqAny.some(r=>selPays.has(r));
+function matches(set,p){
+  const allReq = (p.req||[]).every(r=>set.has(r));
+  const anyReq = !p.reqAny || p.reqAny.some(r=>set.has(r));
   return allReq && anyReq;
 }
+function activeSet(){ return perfil==='familiar' ? new Set([...miMedios,...famMedios]) : miMedios; }
+function has(p){ return matches(activeSet(),p); }
+function esFamiliar(p){ return perfil==='familiar' && matches(activeSet(),p) && !matches(miMedios,p); }
 function reqIds(p){ return [...(p.req||[]), ...(p.reqAny||[])]; }
 function dias(p){ return [p.dia, ...(p.diaExtra||[])]; }
 function esHoy(p){ return dias(p).includes('todos') || dias(p).includes(HOY); }
@@ -242,7 +293,8 @@ function render(){
   let show = usable;
   if($onlyToday.checked) show = show.filter(esHoy);
 
-  $count.textContent = `${show.length} disponible${show.length===1?'':'s'} con tus medios de pago`;
+  const modoTxt = perfil==='familiar' ? ' (perfil familiar)' : '';
+  $count.textContent = `${show.length} disponible${show.length===1?'':'s'}${modoTxt}`;
 
   if(show.length===0 && usable.length===0){
     $results.innerHTML = `<div class="empty">No hay promos en este rubro para tus medios de pago.<br>
@@ -253,7 +305,8 @@ function render(){
 
   show.sort((a,b)=>parseInt(b.pct)-parseInt(a.pct));
   $results.innerHTML = show.map(p=>{
-    return `<div class="result">
+    const fam = esFamiliar(p);
+    return `<div class="result${fam?' famr':''}">
       <div class="top">
         <div class="pct">${p.pct}<small>OFF</small></div>
         <div class="body">
@@ -261,6 +314,7 @@ function render(){
           <div class="meta"><b>${diasNombre(p)}</b> · Tope: ${p.tope} · ${p.vig}<br>${p.nota}</div>
           <div class="badges">
             ${esHoy(p)?'<span class="badge hoy">HOY</span>':''}
+            ${fam?'<span class="badge fam">👨‍👩‍👧 Con la tarjeta de la familia</span>':''}
             ${badgesHTML(p)}
           </div>
         </div>
@@ -271,7 +325,9 @@ function render(){
 }
 
 $onlyToday.onchange=render;
-renderPays(); renderCats(); render();
+renderChips($pays, miMedios, 'miMedios');
+renderChips($paysFam, famMedios, 'famMedios');
+renderPerfil(); renderCats(); render();
 </script>
 </body>
 </html>
