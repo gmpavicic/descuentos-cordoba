@@ -95,6 +95,32 @@
   .planwhere{font-size:12.5px;color:var(--dim);margin-top:5px}
   .planalt{font-size:12.5px;color:var(--dim);margin-top:8px;line-height:1.6;border-top:1px dashed var(--line);padding-top:8px}
   .planfam{font-size:11px;background:#4a3b73;border:1px solid #6b53a3;color:#e7ddff;border-radius:999px;padding:2px 8px;margin-left:4px}
+  .fijo{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin:10px 0}
+  .fijohead{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .fijohead .emo{font-size:20px}
+  .fijohead .flbl{font-size:15px;font-weight:700;flex:1}
+  .finput{display:flex;gap:8px;flex-wrap:wrap}
+  .finput input{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:9px;
+                padding:9px 11px;font-size:14px;font-family:inherit;min-width:0}
+  .finput input.prov{flex:1.4}
+  .finput input.monto{flex:1;text-align:right}
+  .finput input:focus{outline:0;border-color:var(--accent)}
+  .fref{font-size:12px;color:var(--dim);margin-top:8px}
+  .fverdict{font-size:13px;margin-top:8px;font-weight:600;display:none}
+  .fverdict.alto{color:#ff8f8f;display:block}
+  .fverdict.ok{color:var(--good);display:block}
+  .fverdict.medio{color:var(--warn);display:block}
+  .vidatot{background:linear-gradient(135deg,#1c2450,#241c46);border:1px solid var(--accent);
+           border-radius:16px;padding:18px;margin:16px 0 6px}
+  .vidatot .row{display:flex;justify-content:space-between;align-items:baseline;margin:5px 0;font-size:14px}
+  .vidatot .row b{font-size:16px}
+  .vidatot .big{font-size:26px;font-weight:800;color:var(--good)}
+  .vidatot .sub2{font-size:12.5px;color:var(--dim);margin-top:4px}
+  .cta{display:block;width:100%;background:var(--good);color:#08130d;border:0;border-radius:12px;
+       padding:15px;font-size:15.5px;font-weight:800;text-align:center;text-decoration:none;
+       margin:14px 0 4px;cursor:pointer;font-family:inherit}
+  .cta:hover{filter:brightness(1.05)}
+  .ctahint{font-size:11.5px;color:var(--dim);text-align:center;margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -104,18 +130,19 @@
 </header>
 <main>
   <div class="tabs" id="vista">
-    <button data-v="hoy">📅 ¿Qué hago hoy?</button>
-    <button data-v="plan">🗓️ Planificá el mes</button>
+    <button data-v="hoy">📅 Hoy</button>
+    <button data-v="plan">🗓️ El mes</button>
+    <button data-v="vida">🧭 Tu vida</button>
   </div>
 
-  <div class="segwrap">
+  <div class="segwrap" id="perfilWrap">
     <div class="segment" id="perfil">
       <button data-p="individual">👤 Individual</button>
       <button data-p="familiar">👨‍👩‍👧 Familiar</button>
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="misPanel">
     <h2>1 · Mis medios de pago</h2>
     <div class="chips" id="pays"></div>
   </div>
@@ -142,6 +169,12 @@
   <div id="vistaPlan" style="display:none">
     <p class="plansub">Tu mes ordenado: primero los gastos que van sí o sí (súper, nafta). Andá el día que más te conviene.</p>
     <div id="plan"></div>
+  </div>
+
+  <div id="vistaVida" style="display:none">
+    <p class="plansub">Tus gastos fijos de todos los meses. Poné cuánto pagás y compará con lo que paga alguien en Córdoba. Si estás pagando de más, te lo revisamos.</p>
+    <div id="fijos"></div>
+    <div id="vidaResumen"></div>
   </div>
 
   <div class="disclaimer">
@@ -241,9 +274,23 @@ let famMedios = new Set(JSON.parse(localStorage.getItem('famMedios') || '[]'));
 let perfil    = localStorage.getItem('perfil') || 'individual';
 let selCat    = localStorage.getItem('cat') || null;
 let vista     = localStorage.getItem('vista') || 'hoy';
+let vidaGastos = JSON.parse(localStorage.getItem('vidaGastos') || '{}');
 
 // Orden del planificador: primero los gastos que van sí o sí todos los meses
 const PLAN_ORDER = ['super','nafta','cena','cine','vestimenta','peluqueria','hotel','transporte'];
+
+// Gastos fijos + referencia orientativa Córdoba/Argentina (jul 2026). Valores estimados, ajustables.
+const FIJOS = [
+  {id:'prepaga',  emo:'🏥', label:'Obra social / Prepaga', ref:280000, note:'OSDE 210 individual ≈ $267.000 · plan 310 ≈ $345.000'},
+  {id:'celular',  emo:'📱', label:'Celular',                ref:18000,  note:'Línea con datos, valor típico'},
+  {id:'internet', emo:'🌐', label:'Internet / TV',          ref:25000,  note:'Fibra ~300 Mbps ≈ $18.000 a $28.000'},
+  {id:'seguro',   emo:'🚗', label:'Seguro del auto',        ref:55000,  note:'Terceros completo ≈ $40.000 a $90.000 según modelo'},
+  {id:'luz',      emo:'💡', label:'Luz (EPEC)',             ref:35000,  note:'Muy variable según consumo y subsidio (RASE)'},
+  {id:'gas',      emo:'🔥', label:'Gas (Ecogas)',           ref:20000,  note:'Variable; más alto en invierno'},
+];
+// TODO Gastón: poné acá tu WhatsApp con código país, ej. 5493511234567
+const WHATSAPP = '5493510000000';
+const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
 
 const $pays = document.getElementById('pays');
 const $paysFam = document.getElementById('paysFam');
@@ -390,6 +437,70 @@ function renderPlan(){
     : '<div class="empty">Cargá tus medios de pago arriba y te armo el plan del mes 👆</div>';
 }
 
+function renderVida(){
+  const $fijos = document.getElementById('fijos');
+  $fijos.innerHTML = FIJOS.map(f=>{
+    const val = vidaGastos[f.id] || '';
+    return `<div class="fijo" data-id="${f.id}">
+      <div class="fijohead"><span class="emo">${f.emo}</span><span class="flbl">${f.label}</span></div>
+      <div class="finput">
+        <input class="prov" type="text" placeholder="¿Qué tenés? (ej. proveedor/plan)" value="${(vidaGastos[f.id+'_p']||'').replace(/"/g,'&quot;')}" data-field="${f.id}_p">
+        <input class="monto" type="number" inputmode="numeric" placeholder="¿Cuánto pagás?" value="${val}" data-field="${f.id}">
+      </div>
+      <div class="fref">Referencia Córdoba: <b>${fmt(f.ref)}</b>/mes · ${f.note}</div>
+      <div class="fverdict" data-verdict="${f.id}"></div>
+    </div>`;
+  }).join('');
+
+  $fijos.querySelectorAll('input').forEach(inp=>{
+    inp.oninput=()=>{
+      const field=inp.dataset.field;
+      if(inp.type==='number'){ vidaGastos[field]= inp.value===''? '' : Number(inp.value); }
+      else { vidaGastos[field]= inp.value; }
+      localStorage.setItem('vidaGastos', JSON.stringify(vidaGastos));
+      actualizarVerdicts(); renderVidaResumen();
+    };
+  });
+  actualizarVerdicts(); renderVidaResumen();
+}
+
+function actualizarVerdicts(){
+  FIJOS.forEach(f=>{
+    const el=document.querySelector(`[data-verdict="${f.id}"]`); if(!el) return;
+    const v=vidaGastos[f.id];
+    if(!v || v<=0){ el.className='fverdict'; el.textContent=''; return; }
+    const diff=v-f.ref;
+    if(diff > f.ref*0.1){ el.className='fverdict alto'; el.textContent=`⚠️ Estás ~${fmt(diff)}/mes por encima del promedio. Se puede revisar.`; }
+    else if(diff < -f.ref*0.1){ el.className='fverdict ok'; el.textContent=`✅ Estás por debajo del promedio. Buen precio.`; }
+    else { el.className='fverdict medio'; el.textContent=`≈ En línea con el promedio.`; }
+  });
+}
+
+function renderVidaResumen(){
+  const $r=document.getElementById('vidaResumen');
+  let totalPago=0, totalRef=0, ahorro=0, cargados=0;
+  FIJOS.forEach(f=>{ const v=vidaGastos[f.id]; if(v && v>0){ cargados++; totalPago+=v; totalRef+=f.ref; if(v>f.ref) ahorro+=(v-f.ref); } });
+  if(cargados===0){ $r.innerHTML='<p class="ctahint">Cargá al menos un gasto para ver el resumen.</p>'; return; }
+
+  let msg=`Hola! Usé la app de descuentos y quiero que me revisen mis gastos fijos.%0A`;
+  FIJOS.forEach(f=>{ const v=vidaGastos[f.id]; if(v && v>0){ const p=vidaGastos[f.id+'_p']?` (${vidaGastos[f.id+'_p']})`:''; msg+=`- ${f.label}${p}: ${fmt(v)}%0A`; } });
+  msg+=`Total: ${fmt(totalPago)}/mes.`;
+  if(ahorro>0) msg+=` Parece que podría ahorrar ~${fmt(ahorro)}/mes. Me interesa que lo vean.`;
+  const wa=`https://wa.me/${WHATSAPP}?text=${msg}`;
+
+  $r.innerHTML=`
+    <div class="vidatot">
+      <div class="row"><span>Pagás por mes</span><b>${fmt(totalPago)}</b></div>
+      <div class="row"><span>Referencia Córdoba</span><b>${fmt(totalRef)}</b></div>
+      ${ahorro>0
+        ? `<div class="row"><span>Ahorro posible estimado</span><span class="big">${fmt(ahorro)}/mes</span></div>
+           <div class="sub2">Son ~${fmt(ahorro*12)} al año. Un análisis real puede encontrar todavía más.</div>`
+        : `<div class="sub2">Estás en línea o por debajo del promedio 👏. Igual conviene una revisión anual.</div>`}
+    </div>
+    <a class="cta" href="${wa}" target="_blank" rel="noopener">📲 Quiero que revisen mis gastos</a>
+    <p class="ctahint">Te contactamos por WhatsApp. La referencia es orientativa (jul 2026) y cambia con la inflación — el análisis real es sin cargo.</p>`;
+}
+
 function renderVista(){
   document.querySelectorAll('#vista button').forEach(b=>{
     b.classList.toggle('on', b.dataset.v===vista);
@@ -397,7 +508,15 @@ function renderVista(){
   });
   document.getElementById('vistaHoy').style.display  = vista==='hoy'  ? '' : 'none';
   document.getElementById('vistaPlan').style.display = vista==='plan' ? '' : 'none';
-  if(vista==='hoy') render(); else renderPlan();
+  document.getElementById('vistaVida').style.display = vista==='vida' ? '' : 'none';
+  // los medios de pago y el perfil solo aplican a Hoy / El mes
+  const pagos = vista!=='vida';
+  document.getElementById('perfilWrap').style.display = pagos ? '' : 'none';
+  document.getElementById('misPanel').style.display   = pagos ? '' : 'none';
+  document.getElementById('famPanel').style.display   = pagos ? '' : 'none';
+  if(vista==='hoy') render();
+  else if(vista==='plan') renderPlan();
+  else renderVida();
 }
 
 // render() ahora refresca ambas vistas según cuál esté activa
