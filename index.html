@@ -77,14 +77,37 @@
   .empty{text-align:center;color:var(--dim);padding:34px 10px;font-size:14px}
   .disclaimer{font-size:11.5px;color:#7b83b3;margin-top:20px;line-height:1.6;text-align:center}
   a{color:var(--accent)}
+  .tabs{display:flex;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:5px;margin:12px 0 4px}
+  .tabs button{flex:1;border:0;background:transparent;color:var(--dim);padding:11px 8px;border-radius:9px;
+                font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+  .tabs button.on{background:var(--accent);color:#fff}
+  .plansub{color:var(--dim);font-size:13px;margin:10px 2px 2px}
+  .plancard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin:11px 0}
+  .plancard.famr{border-color:#4a3b73}
+  .planhead{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .planhead .emo{font-size:22px}
+  .planhead .planlbl{font-size:16px;font-weight:700}
+  .planbest{font-size:14px;color:var(--txt);line-height:1.7}
+  .planbest b{color:var(--good)}
+  .pill{display:inline-block;background:#243056;border:1px solid var(--accent);color:#cdddff;
+        border-radius:999px;padding:3px 11px;font-size:13px;font-weight:700;margin-right:6px}
+  .pill.any{border-color:var(--good);color:#c7f5df;background:#12281f}
+  .planwhere{font-size:12.5px;color:var(--dim);margin-top:5px}
+  .planalt{font-size:12.5px;color:var(--dim);margin-top:8px;line-height:1.6;border-top:1px dashed var(--line);padding-top:8px}
+  .planfam{font-size:11px;background:#4a3b73;border:1px solid #6b53a3;color:#e7ddff;border-radius:999px;padding:2px 8px;margin-left:4px}
 </style>
 </head>
 <body>
 <header>
-  <h1>¿Qué hago hoy? 💳</h1>
-  <div class="sub">Con lo que ya tenés, a dónde ir y cuánto ahorrás en Córdoba Capital.</div>
+  <h1>Descuentos Córdoba 💳</h1>
+  <div class="sub">Con lo que ya tenés: qué hacer hoy, o cuándo conviene hacer cada gasto.</div>
 </header>
 <main>
+  <div class="tabs" id="vista">
+    <button data-v="hoy">📅 ¿Qué hago hoy?</button>
+    <button data-v="plan">🗓️ Planificá el mes</button>
+  </div>
+
   <div class="segwrap">
     <div class="segment" id="perfil">
       <button data-p="individual">👤 Individual</button>
@@ -103,16 +126,23 @@
     <div class="chips" id="paysFam"></div>
   </div>
 
-  <div class="panel">
-    <h2>3 · ¿Qué querés hacer?</h2>
-    <div class="cats" id="cats"></div>
+  <div id="vistaHoy">
+    <div class="panel">
+      <h2>3 · ¿Qué querés hacer?</h2>
+      <div class="cats" id="cats"></div>
+    </div>
+
+    <div class="toolbar">
+      <label class="switch"><input type="checkbox" id="onlyToday"> Solo lo de hoy</label>
+      <span class="count" id="count"></span>
+    </div>
+    <div id="results"></div>
   </div>
 
-  <div class="toolbar">
-    <label class="switch"><input type="checkbox" id="onlyToday"> Solo lo de hoy</label>
-    <span class="count" id="count"></span>
+  <div id="vistaPlan" style="display:none">
+    <p class="plansub">Tu mes ordenado: primero los gastos que van sí o sí (súper, nafta). Andá el día que más te conviene.</p>
+    <div id="plan"></div>
   </div>
-  <div id="results"></div>
 
   <div class="disclaimer">
     Promos y locales relevados el 07/07/2026 de fuentes públicas y sitios oficiales (Banco Macro, Banco Galicia, Mercado Pago, Personal Pay, Shell, sitios de cada local).
@@ -210,6 +240,10 @@ let miMedios  = new Set(JSON.parse(localStorage.getItem('miMedios') || localStor
 let famMedios = new Set(JSON.parse(localStorage.getItem('famMedios') || '[]'));
 let perfil    = localStorage.getItem('perfil') || 'individual';
 let selCat    = localStorage.getItem('cat') || null;
+let vista     = localStorage.getItem('vista') || 'hoy';
+
+// Orden del planificador: primero los gastos que van sí o sí todos los meses
+const PLAN_ORDER = ['super','nafta','cena','cine','vestimenta','peluqueria','hotel','transporte'];
 
 const $pays = document.getElementById('pays');
 const $paysFam = document.getElementById('paysFam');
@@ -324,10 +358,56 @@ function render(){
   }).join('');
 }
 
+function diaCorto(p){ return p.dia==='todos' ? 'Cualquier día' : diasNombre(p); }
+function lugaresTxt(p){
+  if(p.lugares && p.lugares.length) return p.lugares.map(v=>v.n).slice(0,3).join(', ');
+  return '';
+}
+function renderPlan(){
+  const $plan = document.getElementById('plan');
+  let html=''; let any=false;
+  PLAN_ORDER.forEach(catId=>{
+    const cat = CATS.find(c=>c.id===catId);
+    const promos = PROMOS.filter(p=>p.cat===catId && has(p)).sort((a,b)=>parseInt(b.pct)-parseInt(a.pct));
+    if(!promos.length) return;
+    any=true;
+    const best = promos[0];
+    const fam = esFamiliar(best);
+    const anyDay = best.dia==='todos';
+    const donde = lugaresTxt(best);
+    const rest = promos.slice(1);
+    html += `<div class="plancard${fam?' famr':''}">
+      <div class="planhead"><span class="emo">${cat.emo}</span><span class="planlbl">${cat.lbl}</span></div>
+      <div class="planbest">
+        <span class="pill${anyDay?' any':''}">${anyDay?'Cualquier día':'Andá los '+diaCorto(best)}</span>
+        ${best.name} · <b>${best.pct} OFF</b>${fam?'<span class="planfam">👨‍👩‍👧 familia</span>':''}
+      </div>
+      ${donde?`<div class="planwhere">📍 ${donde}</div>`:''}
+      ${rest.length?`<div class="planalt">También: ${rest.map(p=>`<b>${p.dia==='todos'?'cualquier día':diaCorto(p)}</b> ${p.name} (${p.pct})`).join(' · ')}</div>`:''}
+    </div>`;
+  });
+  $plan.innerHTML = any ? html
+    : '<div class="empty">Cargá tus medios de pago arriba y te armo el plan del mes 👆</div>';
+}
+
+function renderVista(){
+  document.querySelectorAll('#vista button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.v===vista);
+    b.onclick=()=>{ vista=b.dataset.v; localStorage.setItem('vista',vista); renderVista(); };
+  });
+  document.getElementById('vistaHoy').style.display  = vista==='hoy'  ? '' : 'none';
+  document.getElementById('vistaPlan').style.display = vista==='plan' ? '' : 'none';
+  if(vista==='hoy') render(); else renderPlan();
+}
+
+// render() ahora refresca ambas vistas según cuál esté activa
+const _render = render;
+render = function(){ _render(); if(vista==='plan') renderPlan(); };
+
 $onlyToday.onchange=render;
 renderChips($pays, miMedios, 'miMedios');
 renderChips($paysFam, famMedios, 'famMedios');
-renderPerfil(); renderCats(); render();
+renderPerfil(); renderCats(); renderVista();
 </script>
 </body>
 </html>
