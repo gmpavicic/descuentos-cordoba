@@ -457,12 +457,12 @@ function renderVida(){
   document.getElementById('vidaIntro').innerHTML = encuestaCompleta
     ? '<p class="plansub">Tus gastos fijos. Actualizalos cuando cambien y compará con la referencia.</p>'
     : `<div class="intro">
-         <h2>📋 Antes de ver los descuentos</h2>
+         <h2>📋 Antes de empezar</h2>
          <p>Le estoy pasando esta mini-encuesta a <b>100 personas</b> (familia, compañeros y amigos) para armar el <b>promedio real de gastos de Córdoba</b>.</p>
          <ul>
            <li>Podés completarla <b>con tu nombre o anónima</b>.</li>
            <li>Los promedios reales se revelan cuando se completen <b>25 encuestas</b>.</li>
-           <li>Para desbloquear los descuentos 🔒 primero cargá tus gastos y enviá.</li>
+           <li>Al enviar 🔓 desbloqueás <b>tus resultados</b> más todas las <b>promos y sugerencias</b> de gastos del día, del mes y de tu vida.</li>
          </ul>
        </div>`;
   const $fijos = document.getElementById('fijos');
@@ -547,7 +547,7 @@ function renderVidaResumen(){
   const acciones = encuestaCompleta
     ? `<p class="ctahint">✓ Ya enviaste tu encuesta. ¡Gracias! Podés actualizar tus gastos cuando cambien.</p>
        <button class="cta" id="leadBtn">📲 Quiero que me lo revisen</button>`
-    : `<button class="cta" id="enviarBtn">✅ Enviar encuesta y ver los descuentos</button>
+    : `<button class="cta" id="enviarBtn">✅ Enviar y ver mis resultados y promos</button>
        <button class="cta ghost" id="leadBtn">📲 O que me lo revisen por WhatsApp</button>`;
 
   $r.innerHTML=`
@@ -583,7 +583,7 @@ function renderVista(){
     };
   });
   document.getElementById('lockTip').textContent = locked
-    ? '🔒 Completá y enviá la encuesta para desbloquear los descuentos' : '';
+    ? '🔒 Completá y enviá la encuesta para ver tus resultados y las promos' : '';
   document.getElementById('vistaHoy').style.display  = vista==='hoy'  ? '' : 'none';
   document.getElementById('vistaPlan').style.display = vista==='plan' ? '' : 'none';
   document.getElementById('vistaVida').style.display = vista==='vida' ? '' : 'none';
