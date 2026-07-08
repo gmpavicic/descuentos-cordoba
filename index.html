@@ -120,7 +120,16 @@
        padding:15px;font-size:15.5px;font-weight:800;text-align:center;text-decoration:none;
        margin:14px 0 4px;cursor:pointer;font-family:inherit}
   .cta:hover{filter:brightness(1.05)}
+  .cta.ghost{background:transparent;border:1px solid var(--good);color:var(--good)}
   .ctahint{font-size:11.5px;color:var(--dim);text-align:center;margin:0 0 8px}
+  .tabs button.locked{opacity:.45}
+  .locktip{font-size:12.5px;color:var(--warn);text-align:center;margin:6px 0 0}
+  .intro{background:linear-gradient(135deg,#1c2450,#241c46);border:1px solid var(--accent);
+         border-radius:16px;padding:18px;margin:10px 0 6px}
+  .intro h2{margin:0 0 8px;font-size:17px;color:var(--txt)}
+  .intro p{font-size:13.5px;color:var(--dim);line-height:1.6;margin:0 0 8px}
+  .intro ul{margin:0;padding-left:20px;color:var(--dim);font-size:13px;line-height:1.75}
+  .intro b{color:var(--txt)}
 </style>
 </head>
 <body>
@@ -134,6 +143,7 @@
     <button data-v="plan">🗓️ El mes</button>
     <button data-v="vida">🧭 Tu vida</button>
   </div>
+  <div class="locktip" id="lockTip"></div>
 
   <div class="segwrap" id="perfilWrap">
     <div class="segment" id="perfil">
@@ -172,7 +182,7 @@
   </div>
 
   <div id="vistaVida" style="display:none">
-    <p class="plansub">Tus gastos fijos de todos los meses. Poné cuánto pagás y compará con lo que paga alguien en Córdoba. Si estás pagando de más, te lo revisamos.</p>
+    <div id="vidaIntro"></div>
     <div id="fijos"></div>
     <div id="vidaResumen"></div>
   </div>
@@ -273,20 +283,23 @@ let miMedios  = new Set(JSON.parse(localStorage.getItem('miMedios') || localStor
 let famMedios = new Set(JSON.parse(localStorage.getItem('famMedios') || '[]'));
 let perfil    = localStorage.getItem('perfil') || 'individual';
 let selCat    = localStorage.getItem('cat') || null;
-let vista     = localStorage.getItem('vista') || 'hoy';
+let vista     = localStorage.getItem('vista') || 'vida';
 let vidaGastos = JSON.parse(localStorage.getItem('vidaGastos') || '{}');
+let encuestaCompleta = localStorage.getItem('encuestaCompleta')==='1';
+let anonima = localStorage.getItem('anonima')==='1';
 
 // Orden del planificador: primero los gastos que van sí o sí todos los meses
 const PLAN_ORDER = ['super','nafta','cena','cine','vestimenta','peluqueria','hotel','transporte'];
 
 // Gastos fijos + referencia orientativa Córdoba/Argentina (jul 2026). Valores estimados, ajustables.
 const FIJOS = [
-  {id:'prepaga',  emo:'🏥', label:'Obra social / Prepaga', ref:280000, note:'OSDE 210 individual ≈ $267.000 · plan 310 ≈ $345.000'},
-  {id:'celular',  emo:'📱', label:'Celular',                ref:18000,  note:'Línea con datos, valor típico'},
-  {id:'internet', emo:'🌐', label:'Internet / TV',          ref:25000,  note:'Fibra ~300 Mbps ≈ $18.000 a $28.000'},
-  {id:'seguro',   emo:'🚗', label:'Seguro del auto',        ref:55000,  note:'Terceros completo ≈ $40.000 a $90.000 según modelo'},
-  {id:'luz',      emo:'💡', label:'Luz (EPEC)',             ref:35000,  note:'Muy variable según consumo y subsidio (RASE)'},
-  {id:'gas',      emo:'🔥', label:'Gas (Ecogas)',           ref:20000,  note:'Variable; más alto en invierno'},
+  {id:'prepaga',  emo:'🏥', label:'Obra social / Prepaga', ref:421000, note:'ej.: OSDE 210'},
+  {id:'celular',  emo:'📱', label:'Celular',                ref:50000,  note:'ej.: Personal'},
+  {id:'internet', emo:'🌐', label:'Internet',               ref:56100,  note:'ej.: Starlink'},
+  {id:'tv',       emo:'📺', label:'TV / Cable',             ref:80000,  note:'ej.: DirecTV'},
+  {id:'seguro',   emo:'🚗', label:'Seguro del auto',        ref:140000, note:'según modelo (Etios ~$125.000 · Compass 2023 ~$160.000)'},
+  {id:'luz',      emo:'💡', label:'Luz (EPEC)',             ref:50000,  note:'casa ~200 m²'},
+  {id:'gas',      emo:'🔥', label:'Gas (Ecogas)',           ref:120000, note:'casa ~200 m²'},
 ];
 // TODO Gastón: poné acá tu WhatsApp con código país, ej. 5493511234567
 const WHATSAPP = '5493510000000';
@@ -441,6 +454,17 @@ function renderPlan(){
 }
 
 function renderVida(){
+  document.getElementById('vidaIntro').innerHTML = encuestaCompleta
+    ? '<p class="plansub">Tus gastos fijos. Actualizalos cuando cambien y compará con la referencia.</p>'
+    : `<div class="intro">
+         <h2>📋 Antes de ver los descuentos</h2>
+         <p>Le estoy pasando esta mini-encuesta a <b>100 personas</b> (familia, compañeros y amigos) para armar el <b>promedio real de gastos de Córdoba</b>.</p>
+         <ul>
+           <li>Podés completarla <b>con tu nombre o anónima</b>.</li>
+           <li>Los promedios reales se revelan cuando se completen <b>25 encuestas</b>.</li>
+           <li>Para desbloquear los descuentos 🔒 primero cargá tus gastos y enviá.</li>
+         </ul>
+       </div>`;
   const $fijos = document.getElementById('fijos');
   $fijos.innerHTML = FIJOS.map(f=>{
     const val = vidaGastos[f.id] || '';
@@ -450,7 +474,7 @@ function renderVida(){
         <input class="prov" type="text" placeholder="¿Qué tenés? (ej. proveedor/plan)" value="${(vidaGastos[f.id+'_p']||'').replace(/"/g,'&quot;')}" data-field="${f.id}_p">
         <input class="monto" type="number" inputmode="numeric" placeholder="¿Cuánto pagás?" value="${val}" data-field="${f.id}">
       </div>
-      <div class="fref">Referencia Córdoba: <b>${fmt(f.ref)}</b>/mes · ${f.note}</div>
+      <div class="fref">Referencia inicial: <b>${fmt(f.ref)}</b>/mes · ${f.note}</div>
       <div class="fverdict" data-verdict="${f.id}"></div>
     </div>`;
   }).join('');
@@ -473,71 +497,93 @@ function actualizarVerdicts(){
     const v=vidaGastos[f.id];
     if(!v || v<=0){ el.className='fverdict'; el.textContent=''; return; }
     const diff=v-f.ref;
-    if(diff > f.ref*0.1){ el.className='fverdict alto'; el.textContent=`⚠️ Estás ~${fmt(diff)}/mes por encima del promedio. Se puede revisar.`; }
-    else if(diff < -f.ref*0.1){ el.className='fverdict ok'; el.textContent=`✅ Estás por debajo del promedio. Buen precio.`; }
-    else { el.className='fverdict medio'; el.textContent=`≈ En línea con el promedio.`; }
+    if(diff > f.ref*0.1){ el.className='fverdict alto'; el.textContent=`⚠️ Estás ~${fmt(diff)}/mes por encima de la referencia. Se puede revisar.`; }
+    else if(diff < -f.ref*0.1){ el.className='fverdict ok'; el.textContent=`✅ Estás por debajo de la referencia. Buen precio.`; }
+    else { el.className='fverdict medio'; el.textContent=`≈ En línea con la referencia.`; }
   });
+}
+
+function totalesVida(){
+  let total=0, ref=0, ahorro=0, n=0;
+  FIJOS.forEach(f=>{ const v=vidaGastos[f.id]; if(v && v>0){ n++; total+=v; ref+=f.ref; if(v>f.ref) ahorro+=(v-f.ref); } });
+  return {total, ref, ahorro, n};
+}
+function buildWa(){
+  const {total,ahorro}=totalesVida();
+  let msg=`Hola! Usé la app de descuentos y quiero que me revisen mis gastos fijos.%0A`;
+  FIJOS.forEach(f=>{ const v=vidaGastos[f.id]; if(v && v>0){ const p=vidaGastos[f.id+'_p']?` (${vidaGastos[f.id+'_p']})`:''; msg+=`- ${f.label}${p}: ${fmt(v)}%0A`; } });
+  msg+=`Total: ${fmt(total)}/mes.`;
+  if(ahorro>0) msg+=` Parece que podría ahorrar ~${fmt(ahorro)}/mes. Me interesa que lo vean.`;
+  return `https://wa.me/${WHATSAPP}?text=${msg}`;
+}
+function guardarEnSheet(){
+  if(!SHEET_ENDPOINT) return;
+  const {total,ref,ahorro}=totalesVida();
+  const fila={ fecha:new Date().toISOString(),
+    nombre: anonima ? '(anónima)' : (vidaGastos._nombre||''),
+    whatsapp: anonima ? '' : (vidaGastos._tel||''),
+    total, referencia:ref, ahorro_estimado:ahorro };
+  FIJOS.forEach(f=>{ fila[f.id]=vidaGastos[f.id]||''; fila[f.id+'_prov']=vidaGastos[f.id+'_p']||''; });
+  try{ fetch(SHEET_ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(fila)}); }catch(e){}
+}
+function submitEncuesta(abrirWa){
+  if(totalesVida().n===0) return;
+  guardarEnSheet();
+  if(!encuestaCompleta){ encuestaCompleta=true; localStorage.setItem('encuestaCompleta','1'); }
+  if(abrirWa){ window.open(buildWa(),'_blank'); renderVista(); }
+  else { vista='hoy'; localStorage.setItem('vista','hoy'); renderVista(); }
 }
 
 function renderVidaResumen(){
   const $r=document.getElementById('vidaResumen');
-  let totalPago=0, totalRef=0, ahorro=0, cargados=0;
-  FIJOS.forEach(f=>{ const v=vidaGastos[f.id]; if(v && v>0){ cargados++; totalPago+=v; totalRef+=f.ref; if(v>f.ref) ahorro+=(v-f.ref); } });
-  if(cargados===0){ $r.innerHTML='<p class="ctahint">Cargá al menos un gasto para ver el resumen.</p>'; return; }
+  const {total,ref,ahorro,n}=totalesVida();
+  if(n===0){ $r.innerHTML='<p class="ctahint">Cargá al menos un gasto para ver el resumen y poder enviar.</p>'; return; }
 
-  let msg=`Hola! Usé la app de descuentos y quiero que me revisen mis gastos fijos.%0A`;
-  FIJOS.forEach(f=>{ const v=vidaGastos[f.id]; if(v && v>0){ const p=vidaGastos[f.id+'_p']?` (${vidaGastos[f.id+'_p']})`:''; msg+=`- ${f.label}${p}: ${fmt(v)}%0A`; } });
-  msg+=`Total: ${fmt(totalPago)}/mes.`;
-  if(ahorro>0) msg+=` Parece que podría ahorrar ~${fmt(ahorro)}/mes. Me interesa que lo vean.`;
-  const wa=`https://wa.me/${WHATSAPP}?text=${msg}`;
+  const contacto = anonima ? '' : `
+    <div class="finput" style="margin-top:10px">
+      <input class="prov" id="leadNombre" type="text" placeholder="Tu nombre" value="${(vidaGastos._nombre||'').replace(/"/g,'&quot;')}">
+      <input class="monto" id="leadTel" type="tel" inputmode="tel" placeholder="Tu WhatsApp" value="${(vidaGastos._tel||'').replace(/"/g,'&quot;')}" style="text-align:left">
+    </div>`;
+  const acciones = encuestaCompleta
+    ? `<p class="ctahint">✓ Ya enviaste tu encuesta. ¡Gracias! Podés actualizar tus gastos cuando cambien.</p>
+       <button class="cta" id="leadBtn">📲 Quiero que me lo revisen</button>`
+    : `<button class="cta" id="enviarBtn">✅ Enviar encuesta y ver los descuentos</button>
+       <button class="cta ghost" id="leadBtn">📲 O que me lo revisen por WhatsApp</button>`;
 
   $r.innerHTML=`
     <div class="vidatot">
-      <div class="row"><span>Pagás por mes</span><b>${fmt(totalPago)}</b></div>
-      <div class="row"><span>Referencia Córdoba</span><b>${fmt(totalRef)}</b></div>
+      <div class="row"><span>Pagás por mes</span><b>${fmt(total)}</b></div>
+      <div class="row"><span>Referencia inicial</span><b>${fmt(ref)}</b></div>
       ${ahorro>0
         ? `<div class="row"><span>Ahorro posible estimado</span><span class="big">${fmt(ahorro)}/mes</span></div>
            <div class="sub2">Son ~${fmt(ahorro*12)} al año. Un análisis real puede encontrar todavía más.</div>`
-        : `<div class="sub2">Estás en línea o por debajo del promedio 👏. Igual conviene una revisión anual.</div>`}
+        : `<div class="sub2">Estás en línea o por debajo de la referencia 👏. Igual conviene una revisión anual.</div>`}
     </div>
-    <div class="finput" style="margin-top:12px">
-      <input class="prov" id="leadNombre" type="text" placeholder="Tu nombre" value="${(vidaGastos._nombre||'').replace(/"/g,'&quot;')}">
-      <input class="monto" id="leadTel" type="tel" inputmode="tel" placeholder="Tu WhatsApp" value="${(vidaGastos._tel||'').replace(/"/g,'&quot;')}" style="text-align:left">
-    </div>
-    <button class="cta" id="leadBtn" data-wa="${wa}">📲 Quiero que revisen mis gastos</button>
-    <p class="ctahint">Te contactamos por WhatsApp. La referencia es orientativa (jul 2026) y cambia con la inflación — el análisis real es sin cargo.</p>`;
+    <label class="switch" style="margin:12px 2px 0"><input type="checkbox" id="anon" ${anonima?'checked':''}> Enviar anónima (sin nombre ni WhatsApp)</label>
+    ${contacto}
+    ${acciones}
+    <p class="ctahint">El promedio real de las 100 familias se activa al llegar a 25 respuestas; por ahora ves la referencia inicial. El análisis es sin cargo.</p>`;
 
-  $r.querySelector('#leadNombre').oninput=e=>{ vidaGastos._nombre=e.target.value; localStorage.setItem('vidaGastos',JSON.stringify(vidaGastos)); };
-  $r.querySelector('#leadTel').oninput=e=>{ vidaGastos._tel=e.target.value; localStorage.setItem('vidaGastos',JSON.stringify(vidaGastos)); };
-  $r.querySelector('#leadBtn').onclick=()=>enviarLead(wa, totalPago, totalRef, ahorro);
-}
-
-function enviarLead(wa, totalPago, totalRef, ahorro){
-  // 1) Guardar en el Google Sheet (si hay endpoint configurado). No bloquea la apertura de WhatsApp.
-  if(SHEET_ENDPOINT){
-    const fila = {
-      fecha: new Date().toISOString(),
-      nombre: vidaGastos._nombre || '',
-      whatsapp: vidaGastos._tel || '',
-      total: totalPago,
-      referencia: totalRef,
-      ahorro_estimado: ahorro,
-    };
-    FIJOS.forEach(f=>{ fila[f.id] = vidaGastos[f.id]||''; fila[f.id+'_prov'] = vidaGastos[f.id+'_p']||''; });
-    try{
-      fetch(SHEET_ENDPOINT, {method:'POST', mode:'no-cors',
-        headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(fila)});
-    }catch(e){}
-  }
-  // 2) Abrir WhatsApp con el detalle ya redactado.
-  window.open(wa, '_blank');
+  const anon=$r.querySelector('#anon'); if(anon) anon.onchange=e=>{ anonima=e.target.checked; localStorage.setItem('anonima', anonima?'1':'0'); renderVidaResumen(); };
+  const nom=$r.querySelector('#leadNombre'); if(nom) nom.oninput=e=>{ vidaGastos._nombre=e.target.value; localStorage.setItem('vidaGastos',JSON.stringify(vidaGastos)); };
+  const tel=$r.querySelector('#leadTel'); if(tel) tel.oninput=e=>{ vidaGastos._tel=e.target.value; localStorage.setItem('vidaGastos',JSON.stringify(vidaGastos)); };
+  const eb=$r.querySelector('#enviarBtn'); if(eb) eb.onclick=()=>submitEncuesta(false);
+  const lb=$r.querySelector('#leadBtn'); if(lb) lb.onclick=()=>submitEncuesta(true);
 }
 
 function renderVista(){
+  const locked = !encuestaCompleta;           // hasta completar la encuesta, solo se ve "Tu vida"
+  if(locked) vista='vida';
   document.querySelectorAll('#vista button').forEach(b=>{
     b.classList.toggle('on', b.dataset.v===vista);
-    b.onclick=()=>{ vista=b.dataset.v; localStorage.setItem('vista',vista); renderVista(); };
+    b.classList.toggle('locked', locked && b.dataset.v!=='vida');
+    b.onclick=()=>{
+      if(locked && b.dataset.v!=='vida') return;
+      vista=b.dataset.v; localStorage.setItem('vista',vista); renderVista();
+    };
   });
+  document.getElementById('lockTip').textContent = locked
+    ? '🔒 Completá y enviá la encuesta para desbloquear los descuentos' : '';
   document.getElementById('vistaHoy').style.display  = vista==='hoy'  ? '' : 'none';
   document.getElementById('vistaPlan').style.display = vista==='plan' ? '' : 'none';
   document.getElementById('vistaVida').style.display = vista==='vida' ? '' : 'none';
