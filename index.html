@@ -100,11 +100,11 @@
   .fijohead .emo{font-size:20px}
   .fijohead .flbl{font-size:15px;font-weight:700;flex:1}
   .finput{display:flex;gap:8px;flex-wrap:wrap}
-  .finput input{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:9px;
+  .finput input, .finput select{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:9px;
                 padding:9px 11px;font-size:14px;font-family:inherit;min-width:0}
-  .finput input.prov{flex:1.4}
-  .finput input.monto{flex:1;text-align:right}
-  .finput input:focus{outline:0;border-color:var(--accent)}
+  .finput .prov{flex:1.4}
+  .finput .monto{flex:1;text-align:right}
+  .finput input:focus, .finput select:focus{outline:0;border-color:var(--accent)}
   .fref{font-size:12px;color:var(--dim);margin-top:8px}
   .fverdict{font-size:13px;margin-top:8px;font-weight:600;display:none}
   .fverdict.alto{color:#ff8f8f;display:block}
@@ -293,10 +293,10 @@ const PLAN_ORDER = ['super','nafta','cena','cine','vestimenta','peluqueria','hot
 
 // Gastos fijos + referencia orientativa Córdoba/Argentina (jul 2026). Valores estimados, ajustables.
 const FIJOS = [
-  {id:'prepaga',  emo:'🏥', label:'Obra social / Prepaga', ref:421000, note:'ej.: OSDE 210'},
-  {id:'celular',  emo:'📱', label:'Celular',                ref:50000,  note:'ej.: Personal'},
-  {id:'internet', emo:'🌐', label:'Internet',               ref:56100,  note:'ej.: Starlink'},
-  {id:'tv',       emo:'📺', label:'TV / Cable',             ref:80000,  note:'ej.: DirecTV'},
+  {id:'prepaga',  emo:'🏥', label:'Obra social / Prepaga', ref:421000, note:'ej.: OSDE 210', opts:['OSDE','Swiss Medical','Sancor Salud','Galeno','APROSS','PAMI','Otra']},
+  {id:'celular',  emo:'📱', label:'Celular',                ref:50000,  note:'ej.: Personal', opts:['Personal','Claro','Movistar','Tuenti','Otra']},
+  {id:'internet', emo:'🌐', label:'Internet',               ref:56100,  note:'ej.: Starlink', opts:['Personal Flow','Claro','Telecom','Movistar','Starlink','Otra']},
+  {id:'tv',       emo:'📺', label:'TV / Cable',             ref:80000,  note:'ej.: DirecTV', opts:['DirecTV','Flow','DGO','Telecom','Otra']},
   {id:'seguro',   emo:'🚗', label:'Seguro del auto',        ref:140000, note:'según modelo (Etios ~$125.000 · Compass 2023 ~$160.000)'},
   {id:'luz',      emo:'💡', label:'Luz (EPEC)',             ref:50000,  note:'casa ~200 m²'},
   {id:'gas',      emo:'🔥', label:'Gas (Ecogas)',           ref:120000, note:'casa ~200 m²'},
@@ -468,10 +468,17 @@ function renderVida(){
   const $fijos = document.getElementById('fijos');
   $fijos.innerHTML = FIJOS.map(f=>{
     const val = vidaGastos[f.id] || '';
+    const provSel = vidaGastos[f.id+'_p'] || '';
+    const provInput = f.opts
+      ? `<select class="prov" data-field="${f.id}_p">
+           <option value="">¿Qué tenés?</option>
+           ${f.opts.map(o=>`<option value="${o}"${provSel===o?' selected':''}>${o}</option>`).join('')}
+         </select>`
+      : `<input class="prov" type="text" placeholder="¿Qué tenés? (ej. proveedor/plan)" value="${provSel.replace(/"/g,'&quot;')}" data-field="${f.id}_p">`;
     return `<div class="fijo" data-id="${f.id}">
       <div class="fijohead"><span class="emo">${f.emo}</span><span class="flbl">${f.label}</span></div>
       <div class="finput">
-        <input class="prov" type="text" placeholder="¿Qué tenés? (ej. proveedor/plan)" value="${(vidaGastos[f.id+'_p']||'').replace(/"/g,'&quot;')}" data-field="${f.id}_p">
+        ${provInput}
         <input class="monto" type="number" inputmode="numeric" placeholder="¿Cuánto pagás?" value="${val}" data-field="${f.id}">
       </div>
       <div class="fref">Referencia inicial: <b>${fmt(f.ref)}</b>/mes · ${f.note}</div>
@@ -479,14 +486,15 @@ function renderVida(){
     </div>`;
   }).join('');
 
-  $fijos.querySelectorAll('input').forEach(inp=>{
-    inp.oninput=()=>{
+  $fijos.querySelectorAll('input, select').forEach(inp=>{
+    const handler=()=>{
       const field=inp.dataset.field;
       if(inp.type==='number'){ vidaGastos[field]= inp.value===''? '' : Number(inp.value); }
       else { vidaGastos[field]= inp.value; }
       localStorage.setItem('vidaGastos', JSON.stringify(vidaGastos));
       actualizarVerdicts(); renderVidaResumen();
     };
+    inp.oninput=handler; inp.onchange=handler;
   });
   actualizarVerdicts(); renderVidaResumen();
 }
